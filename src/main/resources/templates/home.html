@@ -1,15 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Formetter Adapter</title>
 
-    <link rel="stylesheet" type="text/css" href="/webjars/bootstrap/3.4.1/css/bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/webjars/bootstrap/4.3.1/css/bootstrap.min.css"/>
 
 </head>
 <body>
 <div class="container-fluid text-center">
- <h2>Adapter for format files</h2>
+    <div>
+        <h2>Adapter for format files</h2>
+    </div>
+
+    <div class="text-success">
+        <h3>
+           [[${message}]]
+        </h3>
+    </div>
+
+    <form th:action="@{/upload}" method="post" enctype="multipart/form-data"
+    style="max-width: 600px; margin: 0 auto">
+        <div class="border rounded m-3">
+            <h3>Upload your files </h3>
+            <p>
+                <input type="file" name="document" required/>
+            </p>
+            <p>
+                <input type="submit" value="upload" class="btn btn-primary">
+            </p>
+        </div>
+    </form>
+
+    <div class="row border rounded">
+        <th:block th:each="doc : ${listOfDocuments}">
+            <div class="col">
+                <div>
+                    <img src="https://image.flaticon.com/icons/png/512/29/29593.png">
+                </div>
+                <div>
+                [[${doc.name}]]
+                </div>
+            </div>
+        </th:block>
+    </div>
 
 </div>
 </body>

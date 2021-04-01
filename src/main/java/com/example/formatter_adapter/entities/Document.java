@@ -19,6 +19,15 @@ public class Document {
     @Column(columnDefinition = "MEDIUMBLOB")
     private byte[] content;
 
+    public Document() {
+    }
+
+    public Document(Long id, String name, long size) {
+        this.id = id;
+        this.name = name;
+        this.size = size;
+    }
+
     public Long getId() {
         return id;
     }
