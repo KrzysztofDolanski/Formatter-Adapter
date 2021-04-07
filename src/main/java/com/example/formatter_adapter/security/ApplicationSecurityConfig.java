@@ -1,23 +1,20 @@
 package com.example.formatter_adapter.security;
 
+import com.example.formatter_adapter.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.example.formatter_adapter.security.ApplicationUserPermission.*;
 import static com.example.formatter_adapter.security.ApplicationUserRole.*;
 
 @Configuration
@@ -26,10 +23,12 @@ import static com.example.formatter_adapter.security.ApplicationUserRole.*;
 public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
 
     @Autowired
-    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder) {
+    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, UserService userService) {
         this.passwordEncoder = passwordEncoder;
+        this.userService = userService;
     }
 
 
@@ -52,43 +51,34 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
              .and().formLogin()
                 .loginPage("/login").permitAll()
                 .defaultSuccessUrl("/courses", true)
+                .passwordParameter("password")
+                .usernameParameter("username")
              .and().rememberMe()
                 .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21))
                 .key("somethingVerySecured")
+                .rememberMeParameter("remember-me")
              .and().logout()
                 .logoutUrl("/logout")
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))//todo jeśli csrf będzie enable to ta linie musi zniknąć (nalezy używac metody POST)
                 .clearAuthentication(true)
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID", "remember-me")
                 .logoutSuccessUrl("/login");
     }
 
-    @Override
+
     @Bean
-    protected UserDetailsService userDetailsService() {
-        UserDetails krzysztof = User.builder()
-                .username("krzysztof")
-                .password(passwordEncoder.encode("password"))
-//                .roles(STUDENT.name())
-                .authorities(STUDENT.getGrantedAuthorities())
-                .build();
+    public DaoAuthenticationProvider daoAuthenticationProvider(){
 
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
+        daoAuthenticationProvider.setUserDetailsService(userService);
+        return daoAuthenticationProvider;
+    }
 
-        UserDetails pawel = User.builder()
-                .username("pawel")
-                .password(passwordEncoder.encode("password"))
-//                .roles(ADMIN.name())
-                .authorities(ADMIN.getGrantedAuthorities())
-                .build();
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(daoAuthenticationProvider());
 
-
-        UserDetails tomek = User.builder()
-                .username("tomek")
-                .password(passwordEncoder.encode("password"))
-//                .roles(ADMINTREINEE.name())
-                .authorities(ADMINTREINEE.getGrantedAuthorities())
-                .build();
-
-        return new InMemoryUserDetailsManager(krzysztof, pawel, tomek);
     }
 }
