@@ -1,6 +1,7 @@
 package com.example.formatter_adapter.services;
 
 import com.example.formatter_adapter.entities.UserDao;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,12 +10,13 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
+
 public class UserService implements UserDetailsService {
 
     private final UserDao userDao;
 
     @Autowired
-    public UserService(Qualifier("fake") UserDao userDao) {
+    public UserService(UserDao userDao) {
         this.userDao = userDao;
     }
 

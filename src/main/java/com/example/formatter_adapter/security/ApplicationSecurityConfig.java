@@ -1,5 +1,8 @@
 package com.example.formatter_adapter.security;
 
+import com.example.formatter_adapter.jwt.JwtConfig;
+import com.example.formatter_adapter.jwt.JwtTokenVerifier;
+import com.example.formatter_adapter.jwt.JwtUsernameAndPasswordAuthenticationFilter;
 import com.example.formatter_adapter.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -10,10 +13,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import java.util.concurrent.TimeUnit;
+import javax.crypto.SecretKey;
 
 import static com.example.formatter_adapter.security.ApplicationUserRole.*;
 
@@ -24,11 +27,18 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
+    private final SecretKey secretKey;
+    private final JwtConfig jwtConfig;
 
     @Autowired
-    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, UserService userService) {
+    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder,
+                                     UserService userService,
+                                     SecretKey secretKey,
+                                     JwtConfig jwtConfig) {
         this.passwordEncoder = passwordEncoder;
         this.userService = userService;
+        this.secretKey = secretKey;
+        this.jwtConfig = jwtConfig;
     }
 
 
@@ -38,6 +48,11 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 //                .csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
 //                .and()
                 .csrf().disable()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .addFilter(new JwtUsernameAndPasswordAuthenticationFilter(authenticationManager(), jwtConfig, secretKey))//todo JWT
+                .addFilterAfter(new JwtTokenVerifier(secretKey, jwtConfig), JwtUsernameAndPasswordAuthenticationFilter.class)
                 .authorizeRequests()
                 .antMatchers("/", "index", "/css/*", "/js/*")
                 .permitAll()
@@ -47,28 +62,30 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 //                .antMatchers(HttpMethod.PUT, "/management/api/**").hasAuthority(COURSE_WRITE.getPermission())
 //                .antMatchers(HttpMethod.GET, "/management/api/**").hasAnyRole(ADMIN.name(), ADMINTREINEE.name())
                 .anyRequest()
-                .authenticated()
-             .and().formLogin()
-                .loginPage("/login").permitAll()
-                .defaultSuccessUrl("/courses", true)
-                .passwordParameter("password")
-                .usernameParameter("username")
-             .and().rememberMe()
-                .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21))
-                .key("somethingVerySecured")
-                .rememberMeParameter("remember-me")
-             .and().logout()
-                .logoutUrl("/logout")
-                .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))//todo jeśli csrf będzie enable to ta linie musi zniknąć (nalezy używac metody POST)
-                .clearAuthentication(true)
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID", "remember-me")
-                .logoutSuccessUrl("/login");
+                .authenticated();
+//                .and()
+//             .formLogin()
+//                .loginPage("/login").permitAll()
+//                .defaultSuccessUrl("/courses", true)
+//                .passwordParameter("password")
+//                .usernameParameter("username")
+//             .and().rememberMe()
+//                .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21))
+//                .key("somethingVerySecured")
+//                .rememberMeParameter("remember-me")
+//             .and().logout()
+//                .logoutUrl("/logout")
+//                .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))//todo jeśli csrf będzie enable to ta linie musi zniknąć (nalezy używac metody POST)
+//                .clearAuthentication(true)
+//                .invalidateHttpSession(true)
+//                .deleteCookies("JSESSIONID", "remember-me")
+//                .logoutSuccessUrl("/login");
+
     }
 
 
     @Bean
-    public DaoAuthenticationProvider daoAuthenticationProvider(){
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
 
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
